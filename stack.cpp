@@ -8,21 +8,23 @@ int main()
 
     Stack_type top = 0;
 
-    Stack stk;
+    Stack stk = {};
 
     StackCtor(&stk);
 
     StackPush(&stk, 2);
 
+    StackPop(&stk, &retvalue);
+
+    StackPush(&stk, 2);
+
     top = StackTop(&stk);
 
-    StackPush(&stk, 3);
+    printf("%d", top);
 
     StackPush(&stk, 4);
 
     StackPop(&stk, &retvalue);
-
-    //printf("%d %d", top, retvalue);
 
     StackDtor(&stk);
 
@@ -31,22 +33,22 @@ int main()
 
 void StackCtor(Stack* stk)
     {
-
+    if (logfile == NULL)
+        {
+        logfile = fopen("logfile.txt", "w");
+        }
     stk->stack_size = sz;
     stk->stack_pos = poz;
 
-    if (StackOK(stk))
+    if (stk->stack_pos == 0)
         {
-        if (stk->stack_pos == 0)
+        stk->stack_data = (Stack_type*)calloc(stk->stack_size, sizeof(Stack_type));
+        }
+    else
+        {
+        for (size_t i = 0; i < stk->stack_pos; i++)
             {
-            stk->stack_data = (Stack_type*)calloc(stk->stack_size, sizeof(Stack_type));
-            }
-        else
-            {
-            for (size_t i = 0; i < stk->stack_pos; i++)
-                {
-                stk->stack_data[i] = 0;
-                }
+            stk->stack_data[i] = 0;
             }
         }
 
@@ -57,23 +59,21 @@ void StackCtor(Stack* stk)
 void StackPush(Stack* stk, Stack_type value)
     {
 
-    if (StackOK(stk))
+    StackOK(stk);
+    if (stk->stack_pos > stk->stack_size)
         {
-        if (stk->stack_pos > stk->stack_size)
+        stk->stack_data = (Stack_type*)realloc(stk->stack_data, stk->stack_size * 2);
+        stk->stack_size *= 2;
+        }
+    else
+        {
+        if (stk->stack_pos == stk->stack_size)
             {
             stk->stack_data = (Stack_type*)realloc(stk->stack_data, stk->stack_size * 2);
             stk->stack_size *= 2;
             }
-        else
-            {
-            if (stk->stack_pos == stk->stack_size)
-                {
-                stk->stack_data = (Stack_type*)realloc(stk->stack_data, stk->stack_size * 2);
-                stk->stack_size *= 2;
-                }
-            stk->stack_data[stk->stack_pos] = value;
-            stk->stack_pos++;
-            }
+        stk->stack_data[stk->stack_pos] = value;
+        stk->stack_pos++;
         }
     StackDump(stk);
     }
@@ -82,17 +82,15 @@ void StackPush(Stack* stk, Stack_type value)
 void StackPop(Stack* stk, Stack_type* retvalue)
     {
 
-    if (StackOK(stk))
+    StackOK(stk);
+    if (stk->stack_pos < 0)
         {
-        if (stk->stack_pos < 0)
-            {
-            *retvalue = 0;
-            }
-        else
-            {
-            stk->stack_pos--;
-            *retvalue = stk->stack_data[stk->stack_pos];
-            }
+        *retvalue = 0;
+        }
+    else
+        {
+        stk->stack_pos--;
+        *retvalue = stk->stack_data[stk->stack_pos];
         }
     StackDump(stk);
     }
@@ -100,7 +98,7 @@ void StackPop(Stack* stk, Stack_type* retvalue)
 
 Stack_type StackTop(Stack* stk)
     {
-    return stk->stack_data[stk->stack_pos];
+    return stk->stack_data[stk->stack_pos - 1];
     }
 
 
@@ -109,63 +107,55 @@ void StackDtor(Stack* stk)
     StackDump(stk);
     free(stk->stack_data);
     stk->stack_data = POISON_VALUE_FOR_ADRESS;
+    fclose(logfile);
     }
 
 
 bool StackOK(Stack* stk)
     {
     assert(stk);
-    bool error_status = true;
 
     if (stk->stack_data == NULL)
         {
-        stk->stack_status = NULL_DATA;
-		error_status = false;
+        stk->stack_status |= NULL_DATA;
         }
 
-    else if (stk == NULL)
+    if (stk == NULL)
         {
-        stk->stack_status = NULL_STACK;
-		error_status = false;
+        stk->stack_status |= NULL_STACK;
         }
 
-    else if (stk->stack_size < 0)
+    if (stk->stack_size < 0)
         {
-		stk->stack_status = SIZE_LESS_THAN_ZERO;
-		error_status = false;
+		stk->stack_status |= SIZE_LESS_THAN_ZERO;
         }
 
-	else if (stk->stack_pos < 0)
+	if (stk->stack_pos < 0)
         {
-		stk->stack_status = POS_LESS_THAN_ZERO;
-		error_status = false;
+		stk->stack_status |= POS_LESS_THAN_ZERO;
         }
 
-	else if (stk->stack_pos > stk->stack_size)
+	if (stk->stack_pos > stk->stack_size)
         {
-		stk->stack_status = SIZE_LESS_THAN_POS;
-		error_status = false;
+		stk->stack_status |= SIZE_LESS_THAN_POS;
         }
 
-    else if (stk->stack_data == POISON_VALUE_FOR_ADRESS)
+    if (stk->stack_data == POISON_VALUE_FOR_ADRESS)
         {
-        stk->stack_status = USE_STACK_AFTER_DESTROY;
-        error_status = false;
+        stk->stack_status |= USE_STACK_AFTER_DESTROY;
         }
 
     else
         {
-        stk->stack_status = NO_ERROR;
+        stk->stack_status |= NO_ERROR;
         }
 
-
-    return error_status;
+    return stk->stack_status;
     }
 
 
 void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line)
     {
-    FILE* logfile = fopen("logfile.txt", "w");
 
 
     fprintf(logfile, "ERROR: code %d\n", stk->stack_status);
@@ -187,6 +177,8 @@ void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsi
             fprintf(logfile, "[%d] = NAN(POISON)\n", i);
             }
         }
+    fprintf(logfile, "\n");
+    fprintf(logfile, "\n");
     }
 
 

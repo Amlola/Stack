@@ -16,19 +16,21 @@
 /// StackTop()
 
 
-enum ERROR
+typedef enum
     {
-    NO_ERROR,
-    NULL_STACK,
-	NULL_DATA,
-	SIZE_LESS_THAN_ZERO,
-	POS_LESS_THAN_ZERO,
-	SIZE_LESS_THAN_POS,
-	USE_STACK_AFTER_DESTROY,
-    };
+    NO_ERROR = 0,
+    NULL_STACK = 1,
+	NULL_DATA = 2,
+	SIZE_LESS_THAN_ZERO = 4,
+	POS_LESS_THAN_ZERO = 8,
+	SIZE_LESS_THAN_POS= 16,
+	USE_STACK_AFTER_DESTROY = 32,
+    }ERROR;
 
 
-const size_t sz = 4;
+static FILE* logfile = NULL;
+
+const size_t sz = 6;
 const size_t poz = 0;
 
 
@@ -39,8 +41,9 @@ struct Stack
     Stack_type* stack_data;
     size_t stack_size;
     size_t stack_pos;
-    ERROR stack_status;
+    Stack_type stack_status;
     };
+
 
 
 void StackCtor(Stack* stk);
