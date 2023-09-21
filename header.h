@@ -30,11 +30,13 @@ typedef enum
 
 static FILE* logfile = NULL;
 
+
 const size_t sz = 6;
 const size_t poz = 0;
 
 
 typedef int Stack_type;
+
 
 struct Stack
     {
@@ -54,11 +56,14 @@ void StackPop(Stack* stk, Stack_type* retvalue);
 
 void StackDtor(Stack* stk);
 
-bool StackOK(Stack* stk);
+Stack_type StackOK(Stack* stk);
 
 void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line);
 
 Stack_type StackTop(Stack* stk);
+
+//char* Name_Error(Stack* stk);
+
 
 
 
