@@ -28,8 +28,8 @@ enum ERROR
     };
 
 
-const size_t sz = 10;
-const size_t poz = 9;
+const size_t sz = 4;
+const size_t poz = 0;
 
 
 typedef int Stack_type;

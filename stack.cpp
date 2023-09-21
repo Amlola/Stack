@@ -31,6 +31,7 @@ int main()
 
 void StackCtor(Stack* stk)
     {
+
     stk->stack_size = sz;
     stk->stack_pos = poz;
 
@@ -55,15 +56,21 @@ void StackCtor(Stack* stk)
 
 void StackPush(Stack* stk, Stack_type value)
     {
+
     if (StackOK(stk))
         {
-        if (stk->stack_pos >= stk->stack_size)
+        if (stk->stack_pos > stk->stack_size)
             {
             stk->stack_data = (Stack_type*)realloc(stk->stack_data, stk->stack_size * 2);
             stk->stack_size *= 2;
             }
         else
             {
+            if (stk->stack_pos == stk->stack_size)
+                {
+                stk->stack_data = (Stack_type*)realloc(stk->stack_data, stk->stack_size * 2);
+                stk->stack_size *= 2;
+                }
             stk->stack_data[stk->stack_pos] = value;
             stk->stack_pos++;
             }
@@ -74,6 +81,7 @@ void StackPush(Stack* stk, Stack_type value)
 
 void StackPop(Stack* stk, Stack_type* retvalue)
     {
+
     if (StackOK(stk))
         {
         if (stk->stack_pos < 0)
@@ -99,11 +107,8 @@ Stack_type StackTop(Stack* stk)
 void StackDtor(Stack* stk)
     {
     StackDump(stk);
-    if (StackOK(stk))
-        {
-        free(stk->stack_data);
-        stk->stack_data = POISON_VALUE_FOR_ADRESS;
-        }
+    free(stk->stack_data);
+    stk->stack_data = POISON_VALUE_FOR_ADRESS;
     }
 
 
