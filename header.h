@@ -7,9 +7,7 @@
 
 #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
-#define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDEF
-
-#define POISON_VALUE_FOR_VALUES (Stack_type)0xDEF
+#define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDED
 
 
 /// StackOk()
@@ -31,6 +29,7 @@ enum ERROR
 
 
 const size_t sz = 10;
+const size_t poz = 9;
 
 
 typedef int Stack_type;
@@ -55,5 +54,8 @@ void StackDtor(Stack* stk);
 bool StackOK(Stack* stk);
 
 void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line);
+
+Stack_type StackTop(Stack* stk);
+
 
 
