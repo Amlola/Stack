@@ -46,7 +46,7 @@ typedef enum
 static FILE* logfile = NULL;
 
 
-const int sz = 2;
+const Stack_type sz = 2;
 const size_t poz = 0;
 
 
@@ -58,7 +58,7 @@ struct Stack
         unsigned long long RightCanary;
     #endif
     Stack_type* stack_data;
-    int stack_size;
+    Stack_type stack_size;
     size_t stack_pos;
     int stack_status[NUMBER_OF_ERROR] = {0};
     #ifdef HASH

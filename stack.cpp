@@ -11,9 +11,6 @@ int main()
 
     StackCtor(&stk);
 
-    //stk.stack_size = -4;
-    //stk.stack_data = nullptr;
-
     for (int i = 0; i < 100; i++)
         {
         StackPush(&stk, i);

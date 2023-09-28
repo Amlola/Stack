@@ -47,7 +47,7 @@ void StackPush(Stack* stk, Stack_type value)
     #endif
 
 
-    if (stk->stack_data != nullptr && stk->stack_size > 0)
+    if (stk->stack_data != nullptr)
         {
         if (stk->stack_pos >= stk->stack_size)
             {
