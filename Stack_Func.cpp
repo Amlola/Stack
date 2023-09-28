@@ -1,10 +1,12 @@
 #include "header.h"
+//#include "TXLib.h"
+
 
 
 void StackCtor(Stack* stk)
     {
 
-    FIND_ERROR(stk);
+    CreateErrorArray(stk);
 
     if (logfile == NULL)
         {
@@ -14,31 +16,24 @@ void StackCtor(Stack* stk)
     stk->stack_size = sz;
     stk->stack_pos = poz;
 
+    stk->stack_data = ((Stack_type*)calloc(stk->stack_size * sizeof(*stk->stack_data) + StackCanary(stk), sizeof(Stack_type)));
 
-    if (stk->stack_pos == 0)
-        {
-        stk->stack_data = (Stack_type*)calloc(stk->stack_size * sizeof(*stk->stack_data) + 2 * sizeof(long long), sizeof(Stack_type));
-        }
-    else
-        {
-        for (int i = 0; i < stk->stack_pos; i++)
-            {
-            stk->stack_data[i] = 0;
-            }
-        }
     #ifdef CANARY
-        *(long long*)((char*)stk->stack_data) = 0xDEAD;
-        *(long long*)((char*)stk->stack_data + 2 * sizeof(long long) + stk->stack_size * sizeof(*stk->stack_data)) = 0xDEAD;
+        LEFTCANARYDATA(stack_data) = 0xDEAD;
+        RIGHTCANARYDATA(stack_data, stack_size) = 0xDEAD;
 
         stk->LeftCanary = 0xDEAD;
         stk->RightCanary = 0xDEAD;
     #endif
 
-    stk->hash_data = data(*stk);
-    stk->hash_stack = Stack(*stk);
+    #ifdef HASH
+        stk->hash_stack = CalculateHashStack(stk);
+        stk->hash_data = 0;
+    #endif
 
-    StackOK(stk);
-    StackDump(stk);
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
 
     }
 
@@ -46,53 +41,63 @@ void StackCtor(Stack* stk)
 
 void StackPush(Stack* stk, Stack_type value)
     {
-    StackOK(stk);
-    StackDump(stk);
 
-    if (StackOK(stk) == 1)
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
+
+
+    if (stk->stack_data != nullptr && stk->stack_size > 0)
         {
-        if (stk->stack_pos > stk->stack_size)
+        if (stk->stack_pos >= stk->stack_size)
             {
             StackResize(stk, stk->stack_size * 2);
             }
-        CHANGE(stk->stack_data, stk->stack_pos) = value;
+        VAL(stk->stack_data, stk->stack_pos) = value;
         stk->stack_pos++;
         }
 
-    stk->hash_data = data(*stk);
-    stk->hash_stack = Stack(*stk);
+    #ifdef HASH
+        stk->hash_stack = CalculateHashStack(stk);
+        stk->hash_data  = CalculateHashData(stk);
+    #endif
 
     StackOK(stk);
-    StackDump(stk);
+
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
     }
 
 
-static void StackResize(Stack* stk, Stack_type stack_Newsize)
+static void StackResize(Stack* stk, int stack_Newsize)
     {
-	StackDump(stk);
+	#ifdef DUMP
+        StackDump(stk);
+    #endif
 
 	if (stack_Newsize <= stk->stack_size)
         {
 		stk->stack_status[STACK_OVERFLOW] = 1;
-		StackDump(stk);
+		#ifdef DUMP
+            StackDump(stk);
+        #endif
 		exit(EXIT_FAILURE);
         }
 
 	else
         {
-        Stack_type* dataResize = (Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + 2 * sizeof(long long), sizeof(Stack_type));
+        Stack_type* dataResize = ((Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + StackCanary(stk), sizeof(Stack_type)));
 
         if (StackOK(stk) == 1)
             {
-             #ifdef CANARY
-                *(long long*)((char*)dataResize) = 0xDEAD;
-            #endif
 
             for (int i = 0; i < stk->stack_size; i++)
                 {
-                CHANGE(dataResize, i) = CHANGE(stk->stack_data, i);
+                VAL(dataResize, i) = VAL(stk->stack_data, i);
                 }
             #ifdef CANARY
+                *(long long*)((char*)dataResize) = 0xDEAD;
                 *(long long*)((char*)dataResize + 2 * sizeof(long long) + stack_Newsize * sizeof(*stk->stack_data)) = 0xDEAD;
             #endif
 
@@ -103,11 +108,26 @@ static void StackResize(Stack* stk, Stack_type stack_Newsize)
             }
         }
 
-    stk->hash_data = data(*stk);
-    stk->hash_stack = Stack(*stk);
+    #ifdef HASH
+        stk->hash_stack = CalculateHashStack(stk);
+        stk->hash_data  = CalculateHashData(stk);
+    #endif
 
 	StackOK(stk);
-	StackDump(stk);
+
+	#ifdef DUMP
+        StackDump(stk);
+    #endif
+    }
+
+
+static size_t StackCanary(Stack* stk)
+    {
+    #ifdef CANARY
+        return 2 * sizeof(long long);
+    #else
+        return 0;
+    #endif
     }
 
 
@@ -115,7 +135,10 @@ static void StackResize(Stack* stk, Stack_type stack_Newsize)
 void StackPop(Stack* stk, Stack_type* retvalue)
     {
     StackOK(stk);
-    StackDump(stk);
+
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
 
     if (StackOK(stk) == 1)
         {
@@ -126,24 +149,37 @@ void StackPop(Stack* stk, Stack_type* retvalue)
         else
             {
             stk->stack_pos--;
-            *retvalue = CHANGE(stk->stack_data, stk->stack_pos);
+            *retvalue = VAL(stk->stack_data, stk->stack_pos);
             stk->stack_data[stk->stack_pos] = POISON_NUMBER_FOR_VALUE;
             }
         }
 
-    stk->hash_data = data(*stk);
-    stk->hash_stack = Stack(*stk);
+    #ifdef HASH
+        stk->hash_stack = CalculateHashStack(stk);
+        stk->hash_data  = CalculateHashData(stk);
+    #endif
 
     StackOK(stk);
-    StackDump(stk);
+
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
     }
 
 
 void StackDtor(Stack* stk)
     {
-    StackDump(stk);
+    #ifdef DUMP
+        StackDump(stk);
+    #endif
+
     free(stk->stack_data);
     stk->stack_data = POISON_VALUE_FOR_ADRESS;
+
+    #ifdef HASH
+        stk->hash_stack = 0xABCDEEEF;
+        stk->hash_data  = 0xABCDEEEF;
+    #endif
     fclose(logfile);
     }
 
@@ -160,17 +196,29 @@ bool StackOK(Stack* stk)
 
     else
         {
-        if (*(long long*)((char*)stk->stack_data) != 0xDEAD)
-            {
-            stk->stack_status[DATA_LEFT_CANARY_DAMAGED] = 1;
-            stk->stack_status[NO_ERROR] = 0;
-            }
+        #ifdef CANARY
+            if (LEFTCANARYDATA(stack_data) != 0xDEAD)
+                {
+                stk->stack_status[DATA_LEFT_CANARY_DAMAGED] = 1;
+                stk->stack_status[NO_ERROR] = 0;
+                }
 
-        if (*(long long*)((char*)stk->stack_data + 2 * sizeof(long long) + stk->stack_size * sizeof(*stk->stack_data)) != 0xDEAD)
-            {
-            stk->stack_status[DATA_RIGHT_CANARY_DAMAGED] = 1;
-            stk->stack_status[NO_ERROR] = 0;
-            }
+            if (RIGHTCANARYDATA(stack_data, stack_size) != 0xDEAD)
+                {
+                stk->stack_status[DATA_RIGHT_CANARY_DAMAGED] = 1;
+                stk->stack_status[NO_ERROR] = 0;
+                }
+        #endif
+
+
+        #ifdef HASH
+            if (stk->hash_data != CalculateHashData(stk))
+                {
+                stk->stack_status[WRONG_HASH_DATA] = 1;
+                stk->stack_status[NO_ERROR] = 0;
+                }
+        #endif
+
         }
 
     if (stk == NULL)
@@ -203,76 +251,87 @@ bool StackOK(Stack* stk)
         stk->stack_status[NO_ERROR] = 0;
         }
 
-    if (stk->LeftCanary != 0xDEAD)
-        {
-        stk->stack_status[STACK_LEFT_CANARY_DAMAGED] = 1;
-        stk->stack_status[NO_ERROR] = 0;
-        }
-
-    if (stk->RightCanary != 0xDEAD)
-        {
-        stk->stack_status[STACK_RIGHT_CANARY_DAMAGED] = 1;
-        stk->stack_status[NO_ERROR] = 0;
-        }
-
-
-    return stk->stack_status[0];
-    }
-
-
-void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line)
-    {
-
-    for (size_t j = 0; j < NUMBER_OF_ERROR - 1; j++)
-        {
-        if (stk->stack_status[j] == 1)
-            {
-            fprintf(logfile, "ERROR: %s\n", Name_Error(j));
-            }
-        }
-
-    fprintf(logfile, "path: %s\n", path);
-    fprintf(logfile, "in function: %s\n", signature);
-    fprintf(logfile, "line: %d\n", line);
-    fprintf(logfile, "pos = %d\n", stk->stack_pos);
-    fprintf(logfile, "size = %d\n", stk->stack_size);
-    fprintf(logfile, "data[%p]\n", stk->stack_data);
     #ifdef HASH
-        fprintf(logfile, "hash value = %d\n", stk->hash_data);
+        if (stk->hash_stack != CalculateHashStack(stk))
+            {
+            stk->stack_status[WRONG_HASH_STACK] = 1;
+            stk->stack_status[NO_ERROR] = 0;
+            }
     #endif
 
     #ifdef CANARY
-        fprintf(logfile, "left_canary = %lld\n", stk->LeftCanary);
-        fprintf(logfile, "right_canary = %lld\n", stk->LeftCanary);
+        if (stk->LeftCanary != 0xDEAD)
+            {
+            stk->stack_status[STACK_LEFT_CANARY_DAMAGED] = 1;
+            stk->stack_status[NO_ERROR] = 0;
+            }
+
+        if (stk->RightCanary != 0xDEAD)
+            {
+            stk->stack_status[STACK_RIGHT_CANARY_DAMAGED] = 1;
+            stk->stack_status[NO_ERROR] = 0;
+            }
     #endif
 
 
-    if (stk->stack_data != NULL && stk->stack_size > 0)
-        {
-        for (int i = 0; i < stk->stack_pos; i++)
-            {
-            fprintf(logfile, "*[%d] = %d\n", i, CHANGE(stk->stack_data, i));
-            }
-        for (int i = stk->stack_pos; i <= stk->stack_size; i++)
-            {
-            fprintf(logfile, "[%d] = NAN(POISON)\n", i);
-            }
-        }
-    else
-        {
-        fprintf(logfile, "data pointer is NULL\n");
-        }
-
-    fprintf(logfile, "\n");
-    fprintf(logfile, "\n");
+    return stk->stack_status[NO_ERROR];
     }
 
+#ifdef DUMP
+    void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line)
+        {
 
-void FIND_ERROR(Stack* stk)
+        for (size_t j = 0; j < NUMBER_OF_ERROR - 1; j++)
+            {
+            if (stk->stack_status[j] == 1)
+                {
+                fprintf(logfile, "ERROR: %s\n", Name_Error(j));
+                }
+            }
+
+        fprintf(logfile, "path: %s\n", path);
+        fprintf(logfile, "in function: %s\n", signature);
+        fprintf(logfile, "line: %d\n", line);
+        fprintf(logfile, "pos = %d\n", stk->stack_pos);
+        fprintf(logfile, "size = %d\n", stk->stack_size);
+        fprintf(logfile, "data[%p]\n", stk->stack_data);
+        #ifdef HASH
+            fprintf(logfile, "hash data = %lld\n", stk->hash_data);
+            fprintf(logfile, "hash stack = %lld\n", stk->hash_stack);
+        #endif
+
+        #ifdef CANARY
+            fprintf(logfile, "left_canary = %lld\n", stk->LeftCanary);
+            fprintf(logfile, "right_canary = %lld\n", stk->LeftCanary);
+        #endif
+
+
+        if (stk->stack_data != NULL && stk->stack_size > 0)
+            {
+            for (int i = 0; i < stk->stack_pos; i++)
+                {
+                fprintf(logfile, "*[%d] = %d\n", i, VAL(stk->stack_data, i));
+                }
+            for (int i = stk->stack_pos; i <= stk->stack_size - 1; i++)
+                {
+                fprintf(logfile, "[%d] = NAN(POISON)\n", i);
+                }
+            }
+        else
+            {
+            fprintf(logfile, "data pointer is NULL\n");
+            }
+
+        fprintf(logfile, "\n");
+        fprintf(logfile, "\n");
+        }
+#endif
+
+
+void CreateErrorArray(Stack* stk)
     {
-    stk->stack_status = (Stack_type*)calloc(NUMBER_OF_ERROR, sizeof(Stack_type));
-    stk->stack_status[0] = 1;
-    for (size_t i = 1; i < NUMBER_OF_ERROR - 1; i++)
+    stk->stack_status[NO_ERROR] = 1;
+    for (size_t i = 1; i < NUMBER_OF_ERROR; i++)
         {
         stk->stack_status[i] = 0;
         }
@@ -281,61 +340,98 @@ void FIND_ERROR(Stack* stk)
 
 const char* Name_Error(size_t j)
     {
-    if (j == 0)
+    switch (j)
         {
-        return "NO ERROR\0";
+        case NO_ERROR:
+            return "NO ERROR\0";
+
+        case NULL_STACK:
+            return "NULL STACK\0";
+
+        case NULL_DATA:
+            return "NULL DATA\0";
+
+        case SIZE_LESS_THAN_ZERO:
+            return "SIZE LESS THAN ZERO\0";
+
+        case POS_LESS_THAN_ZERO:
+            return "POS LESS THAN ZERO\0";
+
+        case SIZE_LESS_THAN_POS:
+            return "SIZE LESS THAN POS\0";
+
+        #ifdef CANARY
+            case STACK_LEFT_CANARY_DAMAGED:
+                return "STACK LEFT CANARY DAMAGED\0";
+
+            case STACK_RIGHT_CANARY_DAMAGED:
+                return "STACK RIGHT CANARY DAMAGED\0";
+
+            case DATA_LEFT_CANARY_DAMAGED:
+                return "DATA LEFT CANARY DAMAGED\0";
+
+            case DATA_RIGHT_CANARY_DAMAGED:
+                return "DATA RIGHT CANARY DAMAGED\0";
+        #endif
+
+        #ifdef HASH
+            case WRONG_HASH_DATA:
+                return "WRONG HASH DATA\0";
+
+            case WRONG_HASH_STACK:
+                return "WRONG HASH STACK\0";
+        #endif
+
+
+        case USE_STACK_AFTER_DESTROY:
+            return "USE STACK AFTER DESTROY\0";
+
+        default:
+            return 0;
         }
-
-    else if (j == 1)
-        {
-        return "NULL STACK\0";
-        }
-
-    else if (j == 2)
-        {
-        return "NULL_DATA\0";
-        }
-
-    else if (j == 3)
-        {
-        return "SIZE LESS THAN ZERO\0";
-        }
-
-    else if (j == 4)
-        {
-        return "POS LESS THAN ZERO\0";
-        }
-
-    else if (j == 5)
-        {
-        return "SIZE LESS THAN POS\0";
-        }
-
-    else if (j == 7)
-        {
-        return "STACK_LEFT_CANARY_DAMAGED\0";
-        }
-
-    else if (j == 8)
-        {
-        return "STACK_RIGHT_CANARY_DAMAGED\0";
-        }
-
-    else if (j == 9)
-        {
-        return "DATA_LEFT_CANARY_DAMAGED\0";
-        }
-
-    else if (j == 10)
-        {
-        return "DATA_RIGHT_CANARY_DAMAGED\0";
-        }
-
-    else if (j == 13)
-        {
-        return "USE_STACK_AFTER_DESTROY\0";
-        }
-
-    return 0;
-
     }
+
+
+#ifdef HASH
+    hash_t static Hash(void* memory, size_t number_of_bytes)
+        {
+        hash_t sum = 0;
+
+        for (size_t i = 0; i < number_of_bytes; i++)
+            {
+            sum += (*((char*)memory + i) + 1143) * (32 * number_of_bytes * i);
+            }
+
+        return sum;
+        }
+
+
+    hash_t static CalculateHashStack(Stack* stk)
+        {
+        hash_t hash_stack_old = stk->hash_stack;
+        hash_t hash_data_old  = stk->hash_data;
+        stk->hash_data = 0;
+        stk->hash_stack = 0;
+
+        hash_t hash = Hash((void*)stk, sizeof(*stk));
+        hash += (hash_t)(stk->stack_data);
+
+        stk->hash_stack = hash_stack_old;
+        stk->hash_data  = hash_data_old;
+
+        return hash;
+        }
+
+
+    hash_t static CalculateHashData(Stack* stk)
+        {
+        hash_t hash = 0;
+        if (stk->stack_data != nullptr && stk->hash_stack == CalculateHashStack(stk) && stk->stack_size > 0)
+            {
+            hash += Hash((void*)stk->stack_data, stk->stack_size * sizeof(Stack_type));
+            }
+
+        return hash;
+        }
+#endif
+

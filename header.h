@@ -4,30 +4,24 @@
 #include <assert.h>
 #include <ctype.h>
 
-#define DUMP
-#define HASH
-#define CANARY
-
-
-#ifdef DUMP
-    #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
-#endif
-
-#ifdef HASH
-    #define check_hash(stk) hash_check(&stk)
-    #define data(stk) old_hash_stack(&stk)
-    #define Stack(stk) old_hash_data(&stk)
-#endif
-
 
 
 #define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDED
 
 #define POISON_NUMBER_FOR_VALUE 7182818
 
-#define CHANGE(stack_data, i) (*(Stack_type*)((char*)(stack_data) + 2 * sizeof(long long) + (i) * sizeof(*stack_data)))
+#define VAL(stack_data, i) (*(Stack_type*)((char*)(stack_data) + 2 * sizeof(long long) + (i) * sizeof(*stack_data)))
+
+#define RIGHTCANARYDATA(stack_data, stack_size) *(long long*)((char*)stk->stack_data + 2 * sizeof(long long) + stk->stack_size * sizeof(*stk->stack_data))
+
+#define LEFTCANARYDATA(stack_data) *(long long*)((char*)stk->stack_data)
+
+#ifdef DUMP
+    #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#endif
 
 typedef int Stack_type;
+typedef long long hash_t;
 
 typedef enum
     {
@@ -52,21 +46,25 @@ typedef enum
 static FILE* logfile = NULL;
 
 
-const Stack_type sz = 6;
-const Stack_type poz = 0;
+const int sz = 2;
+const size_t poz = 0;
 
 
 
 struct Stack
     {
-    long long LeftCanary;
+    #ifdef CANARY
+        unsigned long long LeftCanary;
+        unsigned long long RightCanary;
+    #endif
     Stack_type* stack_data;
-    Stack_type stack_size;
-    Stack_type stack_pos;
-    Stack_type* stack_status;
-    Stack_type hash_data;
-    Stack_type hash_stack;
-    long long RightCanary;
+    int stack_size;
+    size_t stack_pos;
+    int stack_status[NUMBER_OF_ERROR] = {0};
+    #ifdef HASH
+        hash_t hash_stack;
+        hash_t hash_data;
+    #endif
     };
 
 
@@ -83,15 +81,21 @@ bool StackOK(Stack* stk);
 
 void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line);
 
-void FIND_ERROR(Stack* stk);
+void CreateErrorArray(Stack* stk);
 
-static void StackResize(Stack* stk, Stack_type stack_Newsize);
+static void StackResize(Stack* stk, int stack_Newsize);
+
+static size_t StackCanary(Stack* stk);
 
 const char* Name_Error(size_t j);
 
-Stack_type old_hash_stack(Stack* stk);
+hash_t static Hash(void* memory, size_t number_of_bytes);
 
-Stack_type old_hash_data(Stack* stk);
+hash_t static CalculateHashStack(Stack* stk);
+
+hash_t static CalculateHashData(Stack* stk);
+
+int old_hash_data(Stack* stk);
 
 void hash_check(Stack* stk);
 
