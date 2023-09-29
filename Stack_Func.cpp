@@ -27,6 +27,7 @@ void StackCtor(Stack* stk)
     #endif
 
     Poison(stk);
+
     #ifdef HASH
         stk->hash_stack = CalculateHashStack(stk);
         stk->hash_data = 0;
@@ -48,7 +49,7 @@ void StackPush(Stack* stk, Stack_type value)
     #endif
 
 
-    if (stk->stack_data != nullptr && stk->stack_size > 0)
+    if (stk->stack_data != nullptr && stk->stack_size > 0 && stk != nullptr)
         {
         if (stk->stack_pos >= stk->stack_size)
             {
@@ -168,12 +169,12 @@ void StackPop(Stack* stk, Stack_type* retvalue)
 
 
 static void Poison(Stack* stk)
-{
-    for (size_t i = stk->stack_pos; i < stk->stack_size; i++)
     {
+    for (size_t i = stk->stack_pos; i < stk->stack_size; i++)
+        {
         stk->stack_data[i] = POISON_NUMBER_FOR_VALUE;
+        }
     }
-}
 
 
 void StackDtor(Stack* stk)
@@ -315,7 +316,7 @@ bool StackOK(Stack* stk)
         #endif
 
 
-        if (stk->stack_data != NULL && stk->stack_size > 0)
+        if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr)
             {
             for (int i = 0; i < stk->stack_pos; i++)
                 {
@@ -339,10 +340,13 @@ bool StackOK(Stack* stk)
 
 void CreateErrorArray(Stack* stk)
     {
-    stk->stack_status[NO_ERROR] = 1;
-    for (size_t i = 1; i < NUMBER_OF_ERROR; i++)
+    if (stk != nullptr)
         {
-        stk->stack_status[i] = 0;
+        stk->stack_status[NO_ERROR] = 1;
+        for (size_t i = 1; i < NUMBER_OF_ERROR; i++)
+            {
+            stk->stack_status[i] = 0;
+            }
         }
     }
 

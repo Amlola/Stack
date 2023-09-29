@@ -4,8 +4,6 @@
 #include <assert.h>
 #include <ctype.h>
 
-//запойзонить
-
 
 #define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDED
 

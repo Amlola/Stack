@@ -31,31 +31,3 @@ int main()
 
     return 0;
     }
-
-
-
-
-
-/*Stack_type StackTop(Stack* stk)
-    {
-    StackDump(stk);
-    if(StackOK(stk) == 1)
-        {
-        return stk->stack_data[stk->stack_pos - 1];
-        }
-    StackDump(stk);
-    }*/
-
-
-
-// Error: code 12;
-// path: D:\project\main.cpp:
-// function int main():
-// line 42
-
-// Data* = 0x32424222;
-//      Data[0] = 10;
-//
-// size = 10;
-//
-
