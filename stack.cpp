@@ -11,12 +11,17 @@ int main()
 
     StackCtor(&stk);
 
-    for (int i = 0; i < 100; i++)
+    //stk.stack_size = -1;
+
+    for (int i = 1; i < 10; i++)
         {
         StackPush(&stk, i);
         }
 
-    StackPop(&stk, &retvalue);
+    for (int i = 0; i < 8; i++)
+        {
+        StackPop(&stk, &retvalue);
+        }
 
     printf("%d", retvalue);
 

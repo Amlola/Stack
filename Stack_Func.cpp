@@ -26,6 +26,7 @@ void StackCtor(Stack* stk)
         stk->RightCanary = 0xDEAD;
     #endif
 
+    Poison(stk);
     #ifdef HASH
         stk->hash_stack = CalculateHashStack(stk);
         stk->hash_data = 0;
@@ -47,13 +48,13 @@ void StackPush(Stack* stk, Stack_type value)
     #endif
 
 
-    if (stk->stack_data != nullptr)
+    if (stk->stack_data != nullptr && stk->stack_size > 0)
         {
         if (stk->stack_pos >= stk->stack_size)
             {
             StackResize(stk, stk->stack_size * 2);
             }
-        VAL(stk->stack_data, stk->stack_pos) = value;
+        stk->stack_data[stk->stack_pos] = value;
         stk->stack_pos++;
         }
 
@@ -76,36 +77,26 @@ static void StackResize(Stack* stk, int stack_Newsize)
         StackDump(stk);
     #endif
 
-	if (stack_Newsize <= stk->stack_size)
-        {
-		stk->stack_status[STACK_OVERFLOW] = 1;
-		#ifdef DUMP
-            StackDump(stk);
-        #endif
-		exit(EXIT_FAILURE);
-        }
+    Stack_type* dataResize = ((Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + StackCanary(stk), sizeof(Stack_type)));
 
-	else
+    if (StackOK(stk) == 1)
         {
-        Stack_type* dataResize = ((Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + StackCanary(stk), sizeof(Stack_type)));
-
-        if (StackOK(stk) == 1)
+        for (int i = 0; i < stk->stack_size; i++)
             {
-
-            for (int i = 0; i < stk->stack_size; i++)
-                {
-                VAL(dataResize, i) = VAL(stk->stack_data, i);
-                }
-            #ifdef CANARY
-                *(long long*)((char*)dataResize) = 0xDEAD;
-                *(long long*)((char*)dataResize + 2 * sizeof(long long) + stack_Newsize * sizeof(*stk->stack_data)) = 0xDEAD;
-            #endif
-
-            free(stk->stack_data);
-
-            stk->stack_data = dataResize;
-            stk->stack_size = stack_Newsize;
+            dataResize[i] = stk->stack_data[i];
             }
+
+
+        #ifdef CANARY
+            *(long long*)((char*)dataResize - sizeof(long long)) = 0xDEAD;
+            *(long long*)((char*)dataResize + stack_Newsize * sizeof(*stk->stack_data) + sizeof(long long)) = 0xDEAD;
+        #endif
+
+        free(stk->stack_data);
+
+        stk->stack_data = dataResize;
+        stk->stack_size = stack_Newsize;
+        Poison(stk);
         }
 
     #ifdef HASH
@@ -149,8 +140,17 @@ void StackPop(Stack* stk, Stack_type* retvalue)
         else
             {
             stk->stack_pos--;
-            *retvalue = VAL(stk->stack_data, stk->stack_pos);
+            *retvalue = stk->stack_data[stk->stack_pos];
             stk->stack_data[stk->stack_pos] = POISON_NUMBER_FOR_VALUE;
+
+            if (stk->stack_pos < stk->stack_size / 4)
+                {
+                #ifdef HASH
+                    stk->hash_stack = CalculateHashStack(stk);
+                    stk->hash_data  = CalculateHashData(stk);
+                #endif
+                StackResize(stk, stk->stack_size / 2);
+                }
             }
         }
 
@@ -165,6 +165,15 @@ void StackPop(Stack* stk, Stack_type* retvalue)
         StackDump(stk);
     #endif
     }
+
+
+static void Poison(Stack* stk)
+{
+    for (size_t i = stk->stack_pos; i < stk->stack_size; i++)
+    {
+        stk->stack_data[i] = POISON_NUMBER_FOR_VALUE;
+    }
+}
 
 
 void StackDtor(Stack* stk)
@@ -310,11 +319,11 @@ bool StackOK(Stack* stk)
             {
             for (int i = 0; i < stk->stack_pos; i++)
                 {
-                fprintf(logfile, "*[%d] = %d\n", i, VAL(stk->stack_data, i));
+                fprintf(logfile, "*[%d] = %d\n", i, stk->stack_data[i]);
                 }
             for (int i = stk->stack_pos; i <= stk->stack_size - 1; i++)
                 {
-                fprintf(logfile, "[%d] = NAN(POISON)\n", i);
+                fprintf(logfile, "[%d] = POISON\n", i);
                 }
             }
         else

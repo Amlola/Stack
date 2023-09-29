@@ -4,17 +4,16 @@
 #include <assert.h>
 #include <ctype.h>
 
+//запойзонить
 
 
 #define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDED
 
 #define POISON_NUMBER_FOR_VALUE 7182818
 
-#define VAL(stack_data, i) (*(Stack_type*)((char*)(stack_data) + 2 * sizeof(long long) + (i) * sizeof(*stack_data)))
+#define RIGHTCANARYDATA(stack_data, stack_size) *(long long*)((char*)stk->stack_data + stk->stack_size * sizeof(*stk->stack_data) + sizeof(long long))
 
-#define RIGHTCANARYDATA(stack_data, stack_size) *(long long*)((char*)stk->stack_data + 2 * sizeof(long long) + stk->stack_size * sizeof(*stk->stack_data))
-
-#define LEFTCANARYDATA(stack_data) *(long long*)((char*)stk->stack_data)
+#define LEFTCANARYDATA(stack_data) *(long long*)((char*)stk->stack_data - sizeof(long long))
 
 #ifdef DUMP
     #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
@@ -46,7 +45,7 @@ typedef enum
 static FILE* logfile = NULL;
 
 
-const Stack_type sz = 2;
+const int sz = 8;
 const size_t poz = 0;
 
 
@@ -55,15 +54,19 @@ struct Stack
     {
     #ifdef CANARY
         unsigned long long LeftCanary;
-        unsigned long long RightCanary;
     #endif
+
     Stack_type* stack_data;
-    Stack_type stack_size;
+    int stack_size;
     size_t stack_pos;
     int stack_status[NUMBER_OF_ERROR] = {0};
     #ifdef HASH
         hash_t hash_stack;
         hash_t hash_data;
+    #endif
+
+    #ifdef CANARY
+        unsigned long long RightCanary;
     #endif
     };
 
@@ -98,6 +101,9 @@ hash_t static CalculateHashData(Stack* stk);
 int old_hash_data(Stack* stk);
 
 void hash_check(Stack* stk);
+
+static void Poison(Stack* stk);
+
 
 //Stack_type StackTop(Stack* stk);
 
