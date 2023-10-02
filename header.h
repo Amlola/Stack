@@ -18,12 +18,10 @@ typedef unsigned long long canary_type;
 
 #define LEFTCANARYDATA *(canary_type*)((char*)stk->stack_data - sizeof(canary_type))
 
-#define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
-
-
 
 #ifdef DUMP
     #define ON_DUMP(...) __VA_ARGS__
+    #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 #else
     #define ON_DUMP(...)
 #endif
@@ -41,8 +39,6 @@ typedef unsigned long long canary_type;
 #else
     #define ON_HASH(...)
 #endif
-
-
 
 
 typedef enum
@@ -74,24 +70,26 @@ const int Size_extend = 2;
 
 struct Stack
     {
-    #ifdef CANARY
+    ON_CANARY
+        (
         canary_type LeftCanary;
-    #endif
+        )
 
     Stack_type* stack_data;
     int stack_size;
     size_t stack_pos;
     int stack_status[NUMBER_OF_ERROR] = {0};
-    #ifdef HASH
+    ON_HASH
+        (
         hash_type hash_stack;
         hash_type hash_data;
-    #endif
+        )
 
-    #ifdef CANARY
+    ON_CANARY
+        (
         canary_type RightCanary;
-    #endif
+        )
     };
-
 
 
 void StackCtor(Stack* stk);
@@ -124,6 +122,4 @@ static void PoisonValue(Stack* stk);
 
 static void Copy(Stack* stk, Stack_type* dataResize);
 
-
 //Stack_type StackTop(Stack* stk);
-

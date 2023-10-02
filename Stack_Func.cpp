@@ -1,6 +1,4 @@
 #include "header.h"
-//#include "TXLib.h"
-
 
 
 void StackCtor(Stack* stk)
@@ -17,7 +15,7 @@ void StackCtor(Stack* stk)
 
     stk->stack_data = ((Stack_type*)calloc(stk->stack_size * sizeof(Stack_type) + StackCanarySize(), sizeof(char)));
 
-    stk->stack_data = stk->stack_data + sizeof(canary_type);
+    stk->stack_data = (Stack_type*)((char*)(stk->stack_data) + sizeof(canary_type));
 
     ON_CANARY
         (
@@ -80,11 +78,13 @@ static void StackResize(Stack* stk, int stack_Newsize)
 
     Stack_type* dataResize = ((Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + StackCanarySize(), sizeof(char)));
 
-    dataResize = dataResize + sizeof(canary_type);
+    dataResize = (Stack_type*)((char*)(dataResize) + sizeof(canary_type));
 
     if (StackOK(stk) == 1)
         {
         Copy(stk, dataResize);
+
+        free((Stack_type*)((char*) stk->stack_data - sizeof(canary_type)));
 
         stk->stack_data = dataResize;
         stk->stack_size = stack_Newsize;
@@ -95,7 +95,6 @@ static void StackResize(Stack* stk, int stack_Newsize)
             RIGHTCANARYDATA = 0xDEAD;
             )
 
-        free(dataResize);
         PoisonValue(stk);
         }
 
@@ -198,8 +197,11 @@ void StackDtor(Stack* stk)
         StackDump(stk);
         )
 
-    free(stk->stack_data);
-    stk->stack_data = POISON_VALUE_FOR_ADRESS;
+    if (stk->stack_data != nullptr)
+        {
+        free((Stack_type*)((char*) stk->stack_data - sizeof(canary_type)));
+        stk->stack_data = POISON_VALUE_FOR_ADRESS;
+        }
 
     ON_HASH
         (

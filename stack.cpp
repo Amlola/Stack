@@ -1,13 +1,12 @@
 #include "header.h"
-//#include "TXLib.h"
 
 
 
 int main()
     {
-    Stack_type retvalue = 0;
-
     Stack stk;
+
+    Stack_type retvalue = 0;
 
     StackCtor(&stk);
 
