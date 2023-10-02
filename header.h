@@ -5,20 +5,45 @@
 #include <ctype.h>
 
 
+typedef int Stack_type;
+typedef long long hash_type;
+typedef unsigned long long canary_type;
+
+
 #define POISON_VALUE_FOR_ADRESS (Stack_type*)0xDED
 
 #define POISON_NUMBER_FOR_VALUE 7182818
 
-#define RIGHTCANARYDATA(stack_data, stack_size) *(long long*)((char*)stk->stack_data + stk->stack_size * sizeof(*stk->stack_data) + sizeof(long long))
+#define RIGHTCANARYDATA *(canary_type*)((char*)stk->stack_data + stk->stack_size * sizeof(*stk->stack_data))
 
-#define LEFTCANARYDATA(stack_data) *(long long*)((char*)stk->stack_data - sizeof(long long))
+#define LEFTCANARYDATA *(canary_type*)((char*)stk->stack_data - sizeof(canary_type))
+
+#define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+
+
 
 #ifdef DUMP
-    #define StackDump(stack_ptr) StackDumpFunction(stack_ptr, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+    #define ON_DUMP(...) __VA_ARGS__
+#else
+    #define ON_DUMP(...)
 #endif
 
-typedef int Stack_type;
-typedef long long hash_t;
+
+#ifdef CANARY
+    #define ON_CANARY(...) __VA_ARGS__
+#else
+    #define ON_CANARY(...)
+#endif
+
+
+#ifdef HASH
+    #define ON_HASH(...) __VA_ARGS__
+#else
+    #define ON_HASH(...)
+#endif
+
+
+
 
 typedef enum
     {
@@ -43,15 +68,14 @@ typedef enum
 static FILE* logfile = NULL;
 
 
-const int sz = 8;
-const size_t poz = 0;
-
+const int sz = 4;
+const int Size_extend = 2;
 
 
 struct Stack
     {
     #ifdef CANARY
-        unsigned long long LeftCanary;
+        canary_type LeftCanary;
     #endif
 
     Stack_type* stack_data;
@@ -59,12 +83,12 @@ struct Stack
     size_t stack_pos;
     int stack_status[NUMBER_OF_ERROR] = {0};
     #ifdef HASH
-        hash_t hash_stack;
-        hash_t hash_data;
+        hash_type hash_stack;
+        hash_type hash_data;
     #endif
 
     #ifdef CANARY
-        unsigned long long RightCanary;
+        canary_type RightCanary;
     #endif
     };
 
@@ -86,27 +110,20 @@ void CreateErrorArray(Stack* stk);
 
 static void StackResize(Stack* stk, int stack_Newsize);
 
-static size_t StackCanary(Stack* stk);
+static size_t StackCanarySize();
 
 const char* Name_Error(size_t j);
 
-hash_t static Hash(void* memory, size_t number_of_bytes);
+hash_type static Hash(void* memory, size_t number_of_bytes);
 
-hash_t static CalculateHashStack(Stack* stk);
+hash_type static CalculateHashStack(Stack* stk);
 
-hash_t static CalculateHashData(Stack* stk);
+hash_type static CalculateHashData(Stack* stk);
 
-int old_hash_data(Stack* stk);
+static void PoisonValue(Stack* stk);
 
-void hash_check(Stack* stk);
-
-static void Poison(Stack* stk);
+static void Copy(Stack* stk, Stack_type* dataResize);
 
 
 //Stack_type StackTop(Stack* stk);
-
-
-
-
-
 

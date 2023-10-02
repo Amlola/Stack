@@ -11,14 +11,14 @@ int main()
 
     StackCtor(&stk);
 
-    //stk.stack_size = -1;
+    //stk.stack_data = nullptr;
 
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < 6; i++)
         {
         StackPush(&stk, i);
         }
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 2; i++)
         {
         StackPop(&stk, &retvalue);
         }
