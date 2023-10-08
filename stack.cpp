@@ -4,7 +4,7 @@
 
 int main()
     {
-    Stack stk;
+    Stack stk = {};
 
     Stack_type retvalue = 0;
 
@@ -12,20 +12,16 @@ int main()
 
     //stk.stack_data = nullptr;
 
-    for (int i = 1; i < 6; i++)
-        {
-        StackPush(&stk, i);
-        }
+    //stk.stack_size = -1;
 
-    for (int i = 0; i < 2; i++)
-        {
-        StackPop(&stk, &retvalue);
-        }
-
-    printf("%d", retvalue);
+    stk.stack_pos = -1;
 
     StackPush(&stk, 4);
 
+    printf("A");
+
+    StackPop(&stk, &retvalue);
+        
     StackDtor(&stk);
 
     return 0;
