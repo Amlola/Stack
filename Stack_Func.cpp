@@ -39,11 +39,11 @@ void StackCtor(Stack* stk)
 
 int StackPush(Stack* stk, Stack_type value)
     {
-    if (!StackOK(stk)) 
+    if (StackOK(stk) != NO_ERROR) 
         {
         return stk->stack_status;   
         }
-
+    
     ON_DUMP
         (
         StackDump(stk);
@@ -63,8 +63,6 @@ int StackPush(Stack* stk, Stack_type value)
         stk->hash_data  = CalculateHashData  (stk);
         )
 
-    StackOK(stk);
-
     ON_DUMP
         (
         StackDump(stk);
@@ -77,7 +75,7 @@ int StackPush(Stack* stk, Stack_type value)
 static int StackResize(Stack* stk, int stack_Newsize)
     {
 
-    if (!StackOK(stk)) 
+    if (StackOK(stk) != NO_ERROR) 
         {
         return stk->stack_status;
         }
@@ -112,8 +110,6 @@ static int StackResize(Stack* stk, int stack_Newsize)
         stk->hash_data  = CalculateHashData(stk);
         )
 
-    StackOK(stk);
-
 	ON_DUMP
         (
         StackDump(stk);
@@ -146,7 +142,7 @@ int StackPop(Stack* stk, Stack_type* retvalue)
     {
     assert(retvalue);
 
-    if (!StackOK(stk)) 
+    if (StackOK(stk) != NO_ERROR) 
         {
         return stk->stack_status;
         }
@@ -182,8 +178,6 @@ int StackPop(Stack* stk, Stack_type* retvalue)
         stk->hash_data  = CalculateHashData(stk);
         )
     
-    StackOK(stk);
-
     ON_DUMP
         (
         StackDump(stk);
@@ -207,11 +201,6 @@ static void FillPoisonValue(Stack* stk)
 
 void StackDtor(Stack* stk)
     {
-    ON_DUMP
-        (
-        StackDump(stk);
-        )
-
     if (stk->stack_data != nullptr)
         {
         free((Stack_type*)((char*) stk->stack_data - sizeof(canary_type)));
@@ -323,7 +312,7 @@ ON_DUMP
                 {
                 if ((stk->stack_status & (1 << j)) > 0)
                     {
-                    fprintf(logfile, "ERROR: %s\n", ErrorArray[j + 1].NameError);
+                    fprintf(logfile, "ERROR: %s\n", ErrorArray[j].NameError);
                     }
                 }
 
@@ -336,19 +325,25 @@ ON_DUMP
 
             ON_HASH
                 (
-                fprintf(logfile, "hash data = %lld\n", stk->hash_data);
-                fprintf(logfile, "hash stack = %lld\n", stk->hash_stack);
+                if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr && stk->stack_pos > 0)
+                    {
+                    fprintf(logfile, "hash data = %lld\n", stk->hash_data);
+                    fprintf(logfile, "hash stack = %lld\n", stk->hash_stack);
+                    }
                 )
 
             ON_CANARY
                 (
-                fprintf(logfile, "left struct canary = 0x%x\n", stk->LeftCanary);
-                fprintf(logfile, "right struct canary = 0x%x\n", stk->LeftCanary);
-                fprintf(logfile, "left data canary = 0x%x\n", LEFTCANARYDATA);
-                fprintf(logfile, "right data canary = 0x%x\n", RIGHTCANARYDATA);
+                if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr && stk->stack_pos > 0)
+                    {
+                    fprintf(logfile, "left struct canary = 0x%x\n", stk->LeftCanary);
+                    fprintf(logfile, "right struct canary = 0x%x\n", stk->LeftCanary);
+                    fprintf(logfile, "left data canary = 0x%x\n", LEFTCANARYDATA);
+                    fprintf(logfile, "right data canary = 0x%x\n", RIGHTCANARYDATA);
+                    }
                 )
 
-            if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr && stk->stack_pos >= 0)
+            if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr && stk->stack_pos > 0)
                 {
                 for (int i = 0; i < stk->stack_pos; i++)
                     {
