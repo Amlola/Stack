@@ -12,11 +12,17 @@ int main()
 
     //stk.stack_data = nullptr;
 
-    stk.stack_size = -1;
+    //stk.stack_size = -1;
 
     //stk.stack_pos = -1;
 
     StackPush(&stk, 4);
+
+    StackPush(&stk, 4);
+    StackPush(&stk, 4);
+    StackPush(&stk, 4);
+    StackPush(&stk, 4);
+
 
     StackPop(&stk, &retvalue);
         

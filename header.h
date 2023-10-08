@@ -18,6 +18,16 @@ typedef unsigned long long canary_type;
 
 #define LEFTCANARYDATA *(canary_type*)((char*)stk->stack_data - sizeof(canary_type))
 
+#define CHECKERROR(stk)                                  \
+                    if (StackOK(stk) != NO_ERROR)        \
+                        {                                \
+                        ON_DUMP                          \
+                            (                            \
+                            StackDump(stk);              \
+                            )                            \
+                        return stk->stack_status;        \
+                        }
+
 
 #ifdef DUMP
     #define ON_DUMP(...) __VA_ARGS__
@@ -101,7 +111,7 @@ struct Stack
 
     Stack_type* stack_data = {};
     int stack_size = 0;
-    size_t stack_pos = 0;
+    int stack_pos = 0;
     int stack_status = 0;
 
     ON_HASH

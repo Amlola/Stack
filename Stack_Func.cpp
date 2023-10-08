@@ -39,15 +39,7 @@ void StackCtor(Stack* stk)
 
 int StackPush(Stack* stk, Stack_type value)
     {
-    if (StackOK(stk) != NO_ERROR) 
-        {
-        return stk->stack_status;   
-        }
-    
-    ON_DUMP
-        (
-        StackDump(stk);
-        )
+    CHECKERROR(stk);
 
     if (stk->stack_pos >= stk->stack_size)
         {
@@ -63,27 +55,15 @@ int StackPush(Stack* stk, Stack_type value)
         stk->hash_data  = CalculateHashData  (stk);
         )
 
-    ON_DUMP
-        (
-        StackDump(stk);
-        )
-    
+    CHECKERROR(stk);
+
     return stk->stack_status;
     }
 
 
 static int StackResize(Stack* stk, int stack_Newsize)
     {
-
-    if (StackOK(stk) != NO_ERROR) 
-        {
-        return stk->stack_status;
-        }
-
-	ON_DUMP
-        (
-        StackDump(stk);
-        )
+    CHECKERROR(stk);
 
     Stack_type* dataResize = ((Stack_type*)calloc(stack_Newsize * sizeof(*stk->stack_data) + StackCanarySize(), sizeof(char)));
 
@@ -110,11 +90,8 @@ static int StackResize(Stack* stk, int stack_Newsize)
         stk->hash_data  = CalculateHashData(stk);
         )
 
-	ON_DUMP
-        (
-        StackDump(stk);
-        )
-    
+	CHECKERROR(stk);
+
     return stk->stack_status;
     }
 
@@ -142,15 +119,7 @@ int StackPop(Stack* stk, Stack_type* retvalue)
     {
     assert(retvalue);
 
-    if (StackOK(stk) != NO_ERROR) 
-        {
-        return stk->stack_status;
-        }
-
-    ON_DUMP
-        (
-        StackDump(stk);
-        )
+    CHECKERROR(stk);
 
     if (stk->stack_pos == 0)
         {
@@ -178,11 +147,8 @@ int StackPop(Stack* stk, Stack_type* retvalue)
         stk->hash_data  = CalculateHashData(stk);
         )
     
-    ON_DUMP
-        (
-        StackDump(stk);
-        )
-    
+    CHECKERROR(stk);
+
     return stk->stack_status;
     }
 
@@ -306,22 +272,22 @@ ON_DUMP
     (
     void StackDumpFunction(Stack* stk, const char* path, const char* signature, unsigned line)
         {
+        fprintf(logfile, "path: %s\n", path);
+        fprintf(logfile, "in function: %s\n", signature);
+        fprintf(logfile, "line: %d\n", line);
+        fprintf(logfile, "pos = %d\n", stk->stack_pos);
+        fprintf(logfile, "size = %d\n", stk->stack_size);
+        fprintf(logfile, "data[%p]\n", stk->stack_data);
+
         if (stk->stack_status != NO_ERROR) 
             {
             for (size_t j = 1; j < NUMBER_OF_ERROR; j++)
                 {
                 if ((stk->stack_status & (1 << j)) > 0)
                     {
-                    fprintf(logfile, "ERROR: %s\n", ErrorArray[j].NameError);
+                    fprintf(logfile, "ERROR: %s\n", ErrorArray[j + 1].NameError);
                     }
                 }
-
-            fprintf(logfile, "path: %s\n", path);
-            fprintf(logfile, "in function: %s\n", signature);
-            fprintf(logfile, "line: %d\n", line);
-            fprintf(logfile, "pos = %d\n", stk->stack_pos);
-            fprintf(logfile, "size = %d\n", stk->stack_size);
-            fprintf(logfile, "data[%p]\n", stk->stack_data);
 
             ON_HASH
                 (
@@ -361,8 +327,18 @@ ON_DUMP
 
         else 
             {
-            fprintf(logfile, "NO ERROR");
-            }      
+             if (stk->stack_data != NULL && stk->stack_size > 0 && stk != nullptr && stk->stack_pos > 0)
+                {
+                for (int i = 0; i < stk->stack_pos; i++)
+                    {
+                    fprintf(logfile, "*[%d] = %d\n", i, stk->stack_data[i]);
+                    }
+                for (int i = stk->stack_pos; i <= stk->stack_size - 1; i++)
+                    {
+                    fprintf(logfile, "[%d] = POISON\n", i);
+                    }
+                }
+            }     
         }
     )
 
